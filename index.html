@@ -1,0 +1,2381 @@
+```html
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>সমবায় সমিতি ব্যবস্থাপনা অ্যাপ</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Hind Siliguri & Inter for crisp Bangla + numeric rendering -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Hind Siliguri"', '"Inter"', 'sans-serif'],
+          },
+          colors: {
+            samityBlue: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#1d63c8',
+              600: '#0f4c9c',
+              700: '#0b3a78',
+              800: '#082b5a',
+            },
+            samityGold: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Hind Siliguri', 'Inter', sans-serif;
+      background-color: #eef2f7;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .header-curve {
+      border-bottom-left-radius: 26px;
+      border-bottom-right-radius: 26px;
+    }
+    .tile-card {
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+    .tile-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px -6px rgba(15, 76, 156, 0.16);
+      border-color: #93c5fd;
+    }
+    .tile-card:active {
+      transform: scale(0.98);
+    }
+    @keyframes pulseSync {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+    .syncing-spin {
+      animation: fa-spin 1s infinite linear;
+    }
+    .signature-pad {
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-start py-0 sm:py-4 px-0 sm:px-3 text-slate-800">
+
+  <!-- Main Mobile App Container -->
+  <div id="appShell" class="w-full max-w-[460px] min-h-screen sm:min-h-[860px] bg-[#f4f7fb] sm:rounded-[34px] sm:shadow-2xl sm:border-[6px] sm:border-slate-800 flex flex-col relative overflow-hidden">
+
+    <!-- Top Blue Samity Header -->
+    <header class="bg-gradient-to-br from-samityBlue-600 via-samityBlue-500 to-samityBlue-700 text-white pt-3 pb-6 px-4 header-curve shadow-md relative z-20">
+      <!-- Top Status / Sync Strip -->
+      <div class="flex items-center justify-between text-[11px] mb-2.5 gap-2">
+        <button id="networkToggleBtn" onclick="toggleNetworkSimulation()" title="অফলাইন/অনলাইন মোড পরিবর্তন করুন"
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition cursor-pointer">
+          <span id="netDot" class="w-2 h-2 rounded-full bg-emerald-300"></span>
+          <span id="netLabel" class="font-medium">অনলাইন</span>
+        </button>
+
+        <div class="flex items-center gap-1.5">
+          <button id="syncBtn" onclick="performSync()"
+            class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold shadow-sm transition cursor-pointer">
+            <i id="syncIcon" class="fa-solid fa-rotate text-[10px]"></i>
+            <span>সিঙ্ক্রোনাইজ</span>
+            <span id="pendingBadge" class="hidden ml-0.5 px-1.5 py-0.2 bg-rose-600 text-white text-[10px] rounded-full">0</span>
+          </button>
+
+          <button onclick="openModal('authModal')"
+            class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white text-samityBlue-700 font-semibold shadow-sm hover:bg-blue-50 transition cursor-pointer">
+            <i class="fa-solid fa-user-shield text-[10px]"></i>
+            <span id="headerAuthBadge">লগইন</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Header Row: Hamburger + Editable Samity Name + Emblem -->
+      <div class="flex items-center justify-between gap-2">
+        <button onclick="openDrawer()" aria-label="মেনু"
+          class="w-10 h-10 rounded-xl bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-lg transition cursor-pointer shrink-0">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <div class="flex-1 text-center min-w-0">
+          <div class="flex items-center justify-center gap-1.5">
+            <h1 id="samityNameDisplay" class="text-lg sm:text-xl font-bold tracking-tight truncate">
+              নতুন সমবায় সমিতি
+            </h1>
+            <button id="editSamityNameBtn" onclick="openEditSamityName()" title="সমিতির নাম পরিবর্তন করুন"
+              class="hidden w-6 h-6 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center text-xs transition cursor-pointer shrink-0">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+          <p id="samitySubtitle" class="text-[11px] text-blue-100 truncate">
+            শূন্য থেকে যাত্রা • <span id="sessionRoleText">অতিথি (লগইন করুন)</span>
+          </p>
+        </div>
+
+        <button onclick="openModal('authModal')" title="সমিতি লোগো / অ্যাকাউন্ট"
+          class="w-10 h-10 rounded-full border-2 border-white/70 bg-samityBlue-800/70 flex flex-col items-center justify-center text-[9px] font-bold leading-tight shadow shrink-0 cursor-pointer">
+          <i class="fa-solid fa-landmark text-amber-300 text-xs mb-0.5"></i>
+          <span>সমিতি</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Scrollable Main Content -->
+    <main class="flex-1 px-3.5 -mt-3 pb-20 space-y-3.5 overflow-y-auto z-10">
+
+      <!-- Two Top Summary Balance Cards (Start at ৳ 0.00) -->
+      <section class="grid grid-cols-2 gap-2.5 bg-white p-2.5 rounded-2xl shadow-sm border border-slate-100">
+        <!-- Available Balance -->
+        <div onclick="openModal('reportsModal')" class="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-slate-50 transition cursor-pointer">
+          <div class="w-10 h-10 rounded-full bg-samityBlue-500 text-white flex items-center justify-center shadow-sm shrink-0">
+            <i class="fa-solid fa-wallet text-sm"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-[11px] font-medium text-slate-500 truncate">উপলব্ধ ব্যালেন্স</p>
+            <p id="availableBalanceText" class="text-sm sm:text-[15px] font-bold text-slate-900 truncate">৳ 0.00</p>
+          </div>
+        </div>
+
+        <!-- Current Profit -->
+        <div onclick="openModal('incomeExpenseModal')" class="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-slate-50 transition cursor-pointer border-l border-slate-100 pl-2.5">
+          <div class="w-10 h-10 rounded-full bg-samityBlue-500 text-white flex items-center justify-center shadow-sm shrink-0">
+            <i class="fa-solid fa-coins text-sm"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-[11px] font-medium text-slate-500 truncate">বর্তমান লাভ</p>
+            <p id="currentProfitText" class="text-sm sm:text-[15px] font-bold text-emerald-700 truncate">৳ 0.00</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Role / Action Banner (Shows logged-in user or prompts login/registration) -->
+      <section id="roleActionBanner" class="bg-white rounded-2xl px-3.5 py-2.5 border border-slate-200/80 shadow-xs flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span id="roleIconBox" class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-sm shrink-0">
+            <i class="fa-solid fa-seedling"></i>
+          </span>
+          <div class="min-w-0">
+            <p id="bannerTitle" class="text-xs font-bold text-slate-800 truncate">নতুন সমিতি — সবকিছু ৳ ০.০০ থেকে শুরু</p>
+            <p id="bannerDesc" class="text-[11px] text-slate-500 truncate">অ্যাডমিন, ক্যাশিয়ার বা সদস্য হিসেবে লগইন করুন</p>
+          </div>
+        </div>
+        <button id="bannerBtn" onclick="openModal('authModal')"
+          class="px-3 py-1.5 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white text-xs font-semibold shrink-0 cursor-pointer transition">
+          লগইন / রেজিস্টার
+        </button>
+      </section>
+
+      <!-- Category Grid Section -->
+      <section>
+        <div class="flex items-center justify-between mb-2 px-0.5">
+          <h2 class="text-xs font-bold text-slate-700 tracking-wide">ক্যাটাগরি</h2>
+          <span id="syncStatusSub" class="text-[10px] text-slate-500">ক্লাউড ও অফলাইন প্রস্তুত</span>
+        </div>
+
+        <!-- Row 1: রিপোর্টস, সদস্য/গ্রাহক, সঞ্চয়, ঋণ -->
+        <div class="grid grid-cols-4 gap-2 mb-2.5">
+          <button onclick="openModal('reportsModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-table-cells-large"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">রিপোর্ট'স</span>
+          </button>
+
+          <button onclick="openModal('membersModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer relative">
+            <span id="memberCountBadge" class="absolute top-1.5 right-1.5 text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-blue-100 text-samityBlue-700">0</span>
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-user-group"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">সদস্য / গ্রাহক</span>
+          </button>
+
+          <button onclick="openModal('savingsModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-wallet"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">সঞ্চয় ও পেমেন্ট</span>
+          </button>
+
+          <button onclick="openModal('loanModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer relative">
+            <span id="pendingLoanBadge" class="hidden absolute top-1.5 right-1.5 text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-900">0</span>
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-calculator"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">ঋণ আবেদন</span>
+          </button>
+        </div>
+
+        <!-- Row 2: আদায় শীট, আদায় রিপোর্টস, ব্যাংকিং, ঋণ অনুমোদন/ক্যাশিয়ার -->
+        <div class="grid grid-cols-4 gap-2 mb-3">
+          <button onclick="openModal('collectionSheetModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">আদায় শীট</span>
+          </button>
+
+          <button onclick="openModal('collectionReportModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-chart-pie"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">আদায় রিপোর্ট'স</span>
+          </button>
+
+          <button onclick="openModal('bankingModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-building-columns"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">ব্যাংকিং</span>
+          </button>
+
+          <button onclick="openModal('loanDeskModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer relative">
+            <span id="actionableLoanBadge" class="hidden absolute top-1.5 right-1.5 text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-rose-500 text-white">0</span>
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-arrow-trend-up"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">ঋণ ডেস্ক</span>
+          </button>
+        </div>
+
+        <!-- Usage / Capacity Card (Inspired by Member Limit Card in Reference) -->
+        <div class="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs mb-3">
+          <div class="flex items-center justify-between mb-1.5">
+            <div>
+              <p class="text-[11px] text-slate-400">ব্যবহারের পরিসংখ্যান</p>
+              <h3 class="text-sm font-bold text-slate-800">সদস্য সীমা</h3>
+            </div>
+            <span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-crown text-amber-400"></i>
+              <span>ক্লাউড সিঙ্ক</span>
+            </span>
+          </div>
+
+          <div class="w-full h-5 bg-slate-100 rounded-full overflow-hidden p-0.5 mb-1.5">
+            <div id="memberProgressBar" class="h-full bg-amber-400 rounded-full transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-slate-900" style="width: 0%;">
+            </div>
+          </div>
+          <p id="memberProgressCenterLabel" class="text-center text-[10px] font-semibold text-slate-600 -mt-5 mb-1.5 pointer-events-none">
+            0 ব্যবহৃত / 100 মোট ধারণক্ষমতা
+          </p>
+
+          <div class="flex items-center justify-between text-[11px] font-semibold pt-1">
+            <span id="memberPercentText" class="text-slate-600">0% ব্যবহৃত</span>
+            <span id="memberRemainingText" class="text-amber-500">100 বাকি আছে..</span>
+          </div>
+        </div>
+
+        <!-- Row 3: আয় ব্যয়, বার্তা পাঠান, ক্লাউড সিঙ্ক, সেটিংস -->
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="openModal('incomeExpenseModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-chart-simple"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">আয় ব্যয়</span>
+          </button>
+
+          <button onclick="openModal('messagingModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-comment-dots"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">বার্তা পাঠান</span>
+          </button>
+
+          <button onclick="openModal('cloudSyncModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">ক্লাউড সিঙ্ক</span>
+          </button>
+
+          <button onclick="openModal('settingsModal')" class="tile-card bg-white rounded-2xl py-3 px-1.5 border border-slate-100 shadow-xs flex flex-col items-center justify-center gap-1.5 cursor-pointer">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 text-samityBlue-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-gear"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-700 text-center leading-tight">সেটিংস</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation Bar (Matching Reference Blue Bottom Bar) -->
+    <nav class="bg-samityBlue-600 text-white px-6 py-2.5 flex items-center justify-around shadow-inner z-20">
+      <button onclick="openModal('membersModal')" class="flex flex-col items-center text-[10px] text-blue-100 hover:text-white cursor-pointer">
+        <i class="fa-solid fa-users text-sm mb-0.5"></i>
+        <span>সদস্য</span>
+      </button>
+      <button onclick="closeAllModals()" class="w-9 h-9 rounded-full border-2 border-white/80 flex items-center justify-center text-xs hover:bg-white/15 cursor-pointer" title="হোম">
+        <i class="fa-solid fa-house"></i>
+      </button>
+      <button onclick="openModal('savingsModal')" class="flex flex-col items-center text-[10px] text-blue-100 hover:text-white cursor-pointer">
+        <i class="fa-solid fa-globe text-sm mb-0.5"></i>
+        <span>পেমেন্ট</span>
+      </button>
+    </nav>
+
+    <!-- Slide-out Navigation Drawer -->
+    <div id="drawerBackdrop" onclick="closeDrawer()" class="hidden fixed inset-0 bg-slate-900/50 z-40"></div>
+    <aside id="sideDrawer" class="hidden fixed top-0 left-0 bottom-0 w-72 bg-white z-50 shadow-2xl flex flex-col justify-between transition-transform">
+      <div>
+        <div class="bg-samityBlue-600 text-white p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs px-2 py-0.5 rounded-full bg-white/20 font-medium" id="drawerRoleBadge">অতিথি</span>
+            <button onclick="closeDrawer()" class="text-white/80 hover:text-white text-lg cursor-pointer">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <h3 id="drawerSamityName" class="text-base font-bold truncate">নতুন সমবায় সমিতি</h3>
+          <p id="drawerUserInfo" class="text-xs text-blue-100 mt-0.5 truncate">লগইন করা হয়নি</p>
+        </div>
+
+        <div class="p-3 space-y-1 text-sm">
+          <button onclick="closeDrawer(); openModal('authModal');" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 text-slate-700 font-medium text-left cursor-pointer">
+            <i class="fa-solid fa-right-to-bracket text-samityBlue-600 w-5"></i>
+            <span>লগইন / রেজিস্ট্রেশন</span>
+          </button>
+          <button onclick="closeDrawer(); openModal('membersModal');" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 text-slate-700 font-medium text-left cursor-pointer">
+            <i class="fa-solid fa-user-group text-samityBlue-600 w-5"></i>
+            <span>সদস্য তালিকা ও তথ্য</span>
+          </button>
+          <button onclick="closeDrawer(); openModal('savingsModal');" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 text-slate-700 font-medium text-left cursor-pointer">
+            <i class="fa-solid fa-earth-americas text-samityBlue-600 w-5"></i>
+            <span>আন্তর্জাতিক অনলাইন পেমেন্ট</span>
+          </button>
+          <button onclick="closeDrawer(); openModal('loanModal');" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 text-slate-700 font-medium text-left cursor-pointer">
+            <i class="fa-solid fa-hand-holding-dollar text-samityBlue-600 w-5"></i>
+            <span>ঋণ আবেদন ফরম</span>
+          </button>
+          <button onclick="closeDrawer(); openModal('loanDeskModal');" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 text-slate-700 font-medium text-left cursor-pointer">
+            <i class="fa-solid fa-user-check text-samityBlue-600 w-5"></i>
+            <span>অ্যাডমিন অনুমোদন ও ক্যাশিয়ার</span>
+          </button>
+          <button onclick="closeDrawer(); openModal('cloudSyncModal');" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 text-slate-700 font-medium text-left cursor-pointer">
+            <i class="fa-solid fa-cloud text-samityBlue-600 w-5"></i>
+            <span>অফলাইন ও ক্লাউড সিঙ্ক</span>
+          </button>
+          <button onclick="closeDrawer(); openModal('settingsModal');" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 text-slate-700 font-medium text-left cursor-pointer">
+            <i class="fa-solid fa-gear text-samityBlue-600 w-5"></i>
+            <span>সমিতি সেটিংস</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-3 border-t border-slate-100">
+        <button id="drawerLogoutBtn" onclick="logoutUser()" class="hidden w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs cursor-pointer">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i> লগআউট করুন
+        </button>
+        <p class="text-[10px] text-center text-slate-400 mt-1">অফলাইন-ফার্স্ট + ক্লাউড সিঙ্ক সিস্টেম</p>
+      </div>
+    </aside>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL BACKDROP & CONTAINER                                             -->
+    <!-- ===================================================================== -->
+    <div id="modalBackdrop" onclick="handleBackdropClick(event)" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-50 flex items-end sm:items-center justify-center p-0 sm:p-3">
+      <div id="modalCard" class="w-full max-w-[445px] max-h-[90vh] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+        <!-- Modal Header -->
+        <div class="bg-samityBlue-600 text-white px-4 py-3.5 flex items-center justify-between shrink-0">
+          <h3 id="modalTitle" class="text-base font-bold">মডাল</h3>
+          <button onclick="closeAllModals()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center cursor-pointer">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div id="modalBody" class="p-4 overflow-y-auto space-y-4 text-sm flex-1">
+          <!-- Dynamically injected -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast / Notification Banner (Non-blocking UI alert replacement) -->
+    <div id="toastBanner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[60] max-w-[92%] w-max bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-medium flex items-center gap-2">
+      <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+      <span id="toastMessage">সফলভাবে সম্পন্ন হয়েছে</span>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- COMPLETE APPLICATION JAVASCRIPT (OFFLINE-FIRST + CLOUD SYNC + WORKFLOWS)  -->
+  <!-- ======================================================================= -->
+  <script>
+    /**
+     * STORAGE KEYS:
+     * 1. SAMITY_LOCAL_KEY: Local offline working state (starts completely from ZERO).
+     * 2. SAMITY_CLOUD_KEY: Simulated cloud datastore (synced when online / Sync button clicked).
+     * 3. SAMITY_PENDING_KEY: Queue of offline mutations waiting to be pushed to cloud.
+     * 4. SAMITY_SESSION_KEY: Active login session (admin, cashier, or member).
+     */
+    const STORAGE_KEYS = {
+      LOCAL: 'samity_app_local_state_v1',
+      CLOUD: 'samity_app_cloud_store_v1',
+      PENDING: 'samity_app_pending_queue_v1',
+      SESSION: 'samity_app_active_session_v1',
+    };
+
+    // Default Demo Admin & Cashier Credentials (only for role auth; financial & member data starts at 0)
+    const DEFAULT_AUTH_CONFIG = {
+      adminId: 'admin',
+      adminPass: '1234',
+      cashierId: 'cashier',
+      cashierPass: '1234',
+    };
+
+    // Initial ZERO-state factory
+    function createZeroState() {
+      return {
+        samityName: 'নতুন সমবায় সমিতি',
+        samityRegNo: '',
+        samityAddress: '',
+        memberCapacity: 100,
+        availableBalance: 0,
+        currentProfit: 0,
+        bankBalance: 0,
+        members: [],       // { id, memberCode, name, fatherName, motherName, nid, phone, password, photoDataUrl, signatureDataUrl, savingsBalance, createdAt, updatedAt }
+        loans: [],         // { id, memberId, memberName, amount, serviceChargePct, serviceChargeAmt, totalPayable, months, installmentAmt, paidAmt, status: 'PENDING_ADMIN' | 'APPROVED_BY_ADMIN' | 'DISBURSED_BY_CASHIER' | 'REJECTED', appliedAt, approvedAt, disbursedAt }
+        transactions: [],  // { id, type: 'SAVINGS' | 'LOAN_DISBURSE' | 'LOAN_REPAY' | 'INCOME' | 'EXPENSE' | 'BANK_DEPOSIT' | 'BANK_WITHDRAW', memberId, memberName, amount, channel, country, referenceId, note, date }
+        messages: [],      // { id, senderRole, senderName, target, text, date }
+        lastSyncedAt: null,
+        updatedAt: Date.now(),
+      };
+    }
+
+    // Runtime application state
+    let state = {
+      data: createZeroState(),
+      pendingQueue: [],
+      isOnline: navigator.onLine !== false,
+      session: null, // { role: 'ADMIN' | 'CASHIER' | 'MEMBER', userId, name, phone }
+    };
+
+    // Helper: Format Bangladeshi Taka cleanly
+    function formatBDT(amount) {
+      const num = Number(amount) || 0;
+      const formatted = num.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      return '৳ ' + formatted;
+    }
+
+    // Helper: Convert English digits to Bangla digits for display counters
+    function toBanglaDigits(val) {
+      const map = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+      return String(val).replace(/\d/g, d => map[d]);
+    }
+
+    // Show non-blocking toast notification
+    let toastTimer = null;
+    function showToast(msg, type = 'success') {
+      const banner = document.getElementById('toastBanner');
+      const icon = document.getElementById('toastIcon');
+      const text = document.getElementById('toastMessage');
+      text.textContent = msg;
+
+      if (type === 'error') {
+        icon.className = 'fa-solid fa-circle-exclamation text-rose-400';
+      } else if (type === 'warn') {
+        icon.className = 'fa-solid fa-triangle-exclamation text-amber-400';
+      } else {
+        icon.className = 'fa-solid fa-circle-check text-emerald-400';
+      }
+
+      banner.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        banner.classList.add('hidden');
+      }, 3200);
+    }
+
+    // Load initial data from localStorage & simulated cloud storage
+    function initStorage() {
+      try {
+        const savedCloud = localStorage.getItem(STORAGE_KEYS.CLOUD);
+        if (!savedCloud) {
+          localStorage.setItem(STORAGE_KEYS.CLOUD, JSON.stringify(createZeroState()));
+        }
+
+        const savedLocal = localStorage.getItem(STORAGE_KEYS.LOCAL);
+        if (savedLocal) {
+          state.data = { ...createZeroState(), ...JSON.parse(savedLocal) };
+        } else {
+          state.data = createZeroState();
+          localStorage.setItem(STORAGE_KEYS.LOCAL, JSON.stringify(state.data));
+        }
+
+        const savedPending = localStorage.getItem(STORAGE_KEYS.PENDING);
+        state.pendingQueue = savedPending ? JSON.parse(savedPending) : [];
+
+        const savedSession = localStorage.getItem(STORAGE_KEYS.SESSION);
+        state.session = savedSession ? JSON.parse(savedSession) : null;
+      } catch (err) {
+        console.error('Storage init error:', err);
+        state.data = createZeroState();
+        state.pendingQueue = [];
+      }
+    }
+
+    // Save local state & optionally queue operation for Cloud Sync
+    function commitMutation(actionType, payload, mutatorFn) {
+      try {
+        mutatorFn(state.data);
+        state.data.updatedAt = Date.now();
+        localStorage.setItem(STORAGE_KEYS.LOCAL, JSON.stringify(state.data));
+
+        const queueItem = {
+          opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          actionType,
+          payload,
+          timestamp: Date.now(),
+        };
+        state.pendingQueue.push(queueItem);
+        localStorage.setItem(STORAGE_KEYS.PENDING, JSON.stringify(state.pendingQueue));
+
+        // If online, auto-push to simulated cloud store immediately
+        if (state.isOnline) {
+          pushPendingToCloud(false);
+        } else {
+          showToast('অফলাইনে সংরক্ষিত হয়েছে — সিঙ্ক্রোনাইজ করলে আপডেট হবে', 'warn');
+        }
+
+        renderAll();
+      } catch (err) {
+        console.error('Mutation error:', err);
+        showToast('ডাটা সংরক্ষণে সমস্যা হয়েছে', 'error');
+      }
+    }
+
+    // Push pending queue & state snapshot to simulated Cloud Store
+    function pushPendingToCloud(showFeedback = true) {
+      if (!state.isOnline) {
+        showToast('আপনি এখন অফলাইনে আছেন! অনলাইনে গিয়ে সিঙ্ক্রোনাইজ করুন।', 'warn');
+        return;
+      }
+
+      const syncIcon = document.getElementById('syncIcon');
+      syncIcon.classList.add('syncing-spin');
+
+      setTimeout(() => {
+        try {
+          const cloudSnapshot = {
+            ...JSON.parse(JSON.stringify(state.data)),
+            lastSyncedAt: Date.now(),
+          };
+          localStorage.setItem(STORAGE_KEYS.CLOUD, JSON.stringify(cloudSnapshot));
+          state.data.lastSyncedAt = cloudSnapshot.lastSyncedAt;
+          state.pendingQueue = [];
+          localStorage.setItem(STORAGE_KEYS.LOCAL, JSON.stringify(state.data));
+          localStorage.setItem(STORAGE_KEYS.PENDING, JSON.stringify([]));
+
+          if (showFeedback) {
+            showToast('ক্লাউডের সাথে সফলভাবে সিঙ্ক্রোনাইজ হয়েছে!');
+          }
+          renderAll();
+        } catch (e) {
+          showToast('সিঙ্ক করতে সমস্যা হয়েছে', 'error');
+        } finally {
+          syncIcon.classList.remove('syncing-spin');
+        }
+      }, 350);
+    }
+
+    // Pull latest state from simulated Cloud Store (e.g., another device/tab or after import)
+    function pullFromCloud() {
+      if (!state.isOnline) {
+        showToast('অফলাইনে ক্লাউড থেকে ডাটা আনা যাবে না', 'warn');
+        return;
+      }
+      try {
+        const rawCloud = localStorage.getItem(STORAGE_KEYS.CLOUD);
+        if (rawCloud) {
+          const cloudData = JSON.parse(rawCloud);
+          state.data = { ...createZeroState(), ...cloudData };
+          state.pendingQueue = [];
+          localStorage.setItem(STORAGE_KEYS.LOCAL, JSON.stringify(state.data));
+          localStorage.setItem(STORAGE_KEYS.PENDING, JSON.stringify([]));
+          renderAll();
+          showToast('ক্লাউড ডাটা সফলভাবে লোড হয়েছে!');
+        }
+      } catch (err) {
+        showToast('ক্লাউড ডাটা আনতে ব্যর্থ', 'error');
+      }
+    }
+
+    function performSync() {
+      if (!state.isOnline) {
+        showToast('অফলাইন মোড চালু আছে। আগে অনলাইন করুন বা সিঙ্ক পরীক্ষা করুন।', 'warn');
+        return;
+      }
+      pushPendingToCloud(true);
+    }
+
+    function toggleNetworkSimulation() {
+      state.isOnline = !state.isOnline;
+      if (state.isOnline && state.pendingQueue.length > 0) {
+        showToast('অনলাইন ফিরে এসেছে! পেন্ডিং ডাটা সিঙ্ক হচ্ছে...');
+        pushPendingToCloud(true);
+      } else {
+        showToast(state.isOnline ? 'অনলাইন মোড সক্রিয়' : 'অফলাইন মোড সক্রিয় (লোকাল কিউ চালু)', state.isOnline ? 'success' : 'warn');
+      }
+      renderAll();
+    }
+
+    // =======================================================================
+    // RENDERING UI
+    // =======================================================================
+    function renderAll() {
+      const d = state.data;
+
+      // Samity Name & Subtitle
+      document.getElementById('samityNameDisplay').textContent = d.samityName || 'নতুন সমবায় সমিতি';
+      document.getElementById('drawerSamityName').textContent = d.samityName || 'নতুন সমবায় সমিতি';
+
+      // Edit Samity Name button visible to ADMIN (or allowed if logged in as ADMIN)
+      const editBtn = document.getElementById('editSamityNameBtn');
+      if (state.session && state.session.role === 'ADMIN') {
+        editBtn.classList.remove('hidden');
+        editBtn.classList.add('inline-flex');
+      } else {
+        editBtn.classList.add('hidden');
+        editBtn.classList.remove('inline-flex');
+      }
+
+      // Network & Pending Sync Indicators
+      const netDot = document.getElementById('netDot');
+      const netLabel = document.getElementById('netLabel');
+      const pendingBadge = document.getElementById('pendingBadge');
+      const syncStatusSub = document.getElementById('syncStatusSub');
+
+      if (state.isOnline) {
+        netDot.className = 'w-2 h-2 rounded-full bg-emerald-300';
+        netLabel.textContent = 'অনলাইন';
+      } else {
+        netDot.className = 'w-2 h-2 rounded-full bg-amber-300';
+        netLabel.textContent = 'অফলাইন';
+      }
+
+      if (state.pendingQueue.length > 0) {
+        pendingBadge.textContent = state.pendingQueue.length;
+        pendingBadge.classList.remove('hidden');
+        syncStatusSub.textContent = `${toBanglaDigits(state.pendingQueue.length)}টি পরিবর্তন সিঙ্কের অপেক্ষায়`;
+      } else {
+        pendingBadge.classList.add('hidden');
+        syncStatusSub.textContent = d.lastSyncedAt
+          ? 'সর্বশেষ সিঙ্ক: ' + new Date(d.lastSyncedAt).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })
+          : 'সব ডাটা আপ-টু-ডেট';
+      }
+
+      // Balance & Profit Cards
+      document.getElementById('availableBalanceText').textContent = formatBDT(d.availableBalance);
+      document.getElementById('currentProfitText').textContent = formatBDT(d.currentProfit);
+
+      // Session / Role Banner
+      const authBadge = document.getElementById('headerAuthBadge');
+      const roleText = document.getElementById('sessionRoleText');
+      const drawerRoleBadge = document.getElementById('drawerRoleBadge');
+      const drawerUserInfo = document.getElementById('drawerUserInfo');
+      const drawerLogoutBtn = document.getElementById('drawerLogoutBtn');
+      const bannerTitle = document.getElementById('bannerTitle');
+      const bannerDesc = document.getElementById('bannerDesc');
+      const bannerBtn = document.getElementById('bannerBtn');
+
+      if (!state.session) {
+        authBadge.textContent = 'লগইন';
+        roleText.textContent = 'অতিথি';
+        drawerRoleBadge.textContent = 'অতিথি';
+        drawerUserInfo.textContent = 'লগইন করা হয়নি';
+        drawerLogoutBtn.classList.add('hidden');
+        bannerTitle.textContent = 'সমিতি প্যানেল — সবকিছু ৳ ০.০০ থেকে শুরু';
+        bannerDesc.textContent = 'প্রশাসনিক, ক্যাশিয়ার বা সদস্য লগইন করুন';
+        bannerBtn.textContent = 'লগইন / রেজিস্টার';
+      } else if (state.session.role === 'ADMIN') {
+        authBadge.textContent = 'অ্যাডমিন';
+        roleText.textContent = 'প্রশাসনিক লগইন';
+        drawerRoleBadge.textContent = 'প্রধান অ্যাডমিন';
+        drawerUserInfo.textContent = `${state.session.name} (সমিতির নাম ও সদস্য নিয়ন্ত্রণ)`;
+        drawerLogoutBtn.classList.remove('hidden');
+        bannerTitle.textContent = `স্বাগতম, ${state.session.name} (অ্যাডমিন)`;
+        bannerDesc.textContent = 'সমিতির নাম এডিট, সদস্য যোগ/এডিট ও ঋণ অনুমোদন করুন';
+        bannerBtn.textContent = 'ঋণ অনুমোদন';
+        bannerBtn.onclick = () => openModal('loanDeskModal');
+      } else if (state.session.role === 'CASHIER') {
+        authBadge.textContent = 'ক্যাশিয়ার';
+        roleText.textContent = 'ক্যাশিয়ার প্যানেল';
+        drawerRoleBadge.textContent = 'ক্যাশিয়ার';
+        drawerUserInfo.textContent = `${state.session.name} (অনুমোদিত ঋণ বিতরণ)`;
+        drawerLogoutBtn.classList.remove('hidden');
+        bannerTitle.textContent = `ক্যাশিয়ার ডেস্ক: ${state.session.name}`;
+        bannerDesc.textContent = 'অ্যাডমিন অনুমোদিত ঋণ বিতরণ ও আদায় পরিচালনা করুন';
+        bannerBtn.textContent = 'ঋণ বিতরণ';
+        bannerBtn.onclick = () => openModal('loanDeskModal');
+      } else {
+        authBadge.textContent = 'সদস্য';
+        roleText.textContent = 'সদস্য অ্যাকাউন্ট';
+        drawerRoleBadge.textContent = 'সদস্য';
+        drawerUserInfo.textContent = `${state.session.name} • ফোন: ${state.session.phone}`;
+        drawerLogoutBtn.classList.remove('hidden');
+        bannerTitle.textContent = `সদস্য: ${state.session.name}`;
+        bannerDesc.textContent = 'যেকোনো দেশ থেকে অনলাইন পেমেন্ট ও ঋণ আবেদন করুন';
+        bannerBtn.textContent = 'অনলাইন পেমেন্ট';
+        bannerBtn.onclick = () => openModal('savingsModal');
+      }
+
+      if (!state.session) {
+        bannerBtn.onclick = () => openModal('authModal');
+      }
+
+      // Member Capacity Bar
+      const count = d.members.length;
+      const cap = d.memberCapacity || 100;
+      const pct = Math.min(100, Math.round((count / cap) * 100));
+      const remaining = Math.max(0, cap - count);
+
+      document.getElementById('memberCountBadge').textContent = toBanglaDigits(count);
+      const bar = document.getElementById('memberProgressBar');
+      bar.style.width = pct + '%';
+      document.getElementById('memberProgressCenterLabel').textContent =
+        `${toBanglaDigits(count)} ব্যবহৃত / ${toBanglaDigits(cap)} মোট ধারণক্ষমতা`;
+      document.getElementById('memberPercentText').textContent = `${toBanglaDigits(pct)}% ব্যবহৃত`;
+      document.getElementById('memberRemainingText').textContent = `${toBanglaDigits(remaining)} বাকি আছে..`;
+
+      // Loan Badges
+      const pendingAdminLoans = d.loans.filter(l => l.status === 'PENDING_ADMIN').length;
+      const approvedForCashier = d.loans.filter(l => l.status === 'APPROVED_BY_ADMIN').length;
+
+      const loanReqBadge = document.getElementById('pendingLoanBadge');
+      if (pendingAdminLoans > 0) {
+        loanReqBadge.textContent = toBanglaDigits(pendingAdminLoans);
+        loanReqBadge.classList.remove('hidden');
+      } else {
+        loanReqBadge.classList.add('hidden');
+      }
+
+      const deskBadge = document.getElementById('actionableLoanBadge');
+      const totalDeskAction = pendingAdminLoans + approvedForCashier;
+      if (totalDeskAction > 0) {
+        deskBadge.textContent = toBanglaDigits(totalDeskAction);
+        deskBadge.classList.remove('hidden');
+      } else {
+        deskBadge.classList.add('hidden');
+      }
+    }
+
+    // =======================================================================
+    // DRAWER & MODAL SYSTEM
+    // =======================================================================
+    function openDrawer() {
+      document.getElementById('drawerBackdrop').classList.remove('hidden');
+      document.getElementById('sideDrawer').classList.remove('hidden');
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawerBackdrop').classList.add('hidden');
+      document.getElementById('sideDrawer').classList.add('hidden');
+    }
+
+    function handleBackdropClick(e) {
+      if (e.target.id === 'modalBackdrop') {
+        closeAllModals();
+      }
+    }
+
+    function closeAllModals() {
+      document.getElementById('modalBackdrop').classList.add('hidden');
+      document.getElementById('modalBody').innerHTML = '';
+    }
+
+    function openModal(modalName, extraParam = null) {
+      const backdrop = document.getElementById('modalBackdrop');
+      const titleEl = document.getElementById('modalTitle');
+      const bodyEl = document.getElementById('modalBody');
+
+      const builders = {
+        authModal: buildAuthModal,
+        membersModal: buildMembersModal,
+        addEditMemberModal: () => buildAddEditMemberModal(extraParam),
+        memberProfileModal: () => buildMemberProfileModal(extraParam),
+        savingsModal: buildSavingsPaymentModal,
+        loanModal: buildLoanApplicationModal,
+        loanDeskModal: buildLoanDeskModal,
+        collectionSheetModal: buildCollectionSheetModal,
+        collectionReportModal: buildCollectionReportModal,
+        bankingModal: buildBankingModal,
+        incomeExpenseModal: buildIncomeExpenseModal,
+        messagingModal: buildMessagingModal,
+        cloudSyncModal: buildCloudSyncModal,
+        settingsModal: buildSettingsModal,
+        editSamityNameModal: buildEditSamityNameModal,
+      };
+
+      const builder = builders[modalName];
+      if (!builder) return;
+
+      const { title, html, onMount } = builder();
+      titleEl.textContent = title;
+      bodyEl.innerHTML = html;
+      backdrop.classList.remove('hidden');
+      if (typeof onMount === 'function') {
+        onMount();
+      }
+    }
+
+    // =======================================================================
+    // 1. AUTHENTICATION (ADMIN, CASHIER, MEMBER) + MEMBER REGISTRATION
+    // =======================================================================
+    function buildAuthModal() {
+      const currentSessionHtml = state.session ? `
+        <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-emerald-900">বর্তমান সেশন: ${state.session.name}</p>
+            <p class="text-[11px] text-emerald-700">ভূমিকা: ${
+              state.session.role === 'ADMIN' ? 'প্রশাসনিক (Admin)' :
+              state.session.role === 'CASHIER' ? 'ক্যাশিয়ার (Cashier)' : 'সদস্য (Member)'
+            }</p>
+          </div>
+          <button onclick="logoutUser(); closeAllModals();" class="px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-semibold cursor-pointer">
+            লগআউট
+          </button>
+        </div>
+      ` : '';
+
+      return {
+        title: 'সমিতি লগইন ও রেজিস্ট্রেশন',
+        html: `
+          ${currentSessionHtml}
+
+          <!-- Mode Tabs -->
+          <div class="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl">
+            <button id="tabAdminLogin" onclick="switchAuthTab('admin')" class="py-2 rounded-lg text-xs font-bold bg-samityBlue-600 text-white cursor-pointer">
+              প্রশাসনিক লগইন
+            </button>
+            <button id="tabMemberLogin" onclick="switchAuthTab('member')" class="py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-white cursor-pointer">
+              সদস্য লগইন
+            </button>
+            <button id="tabRegister" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-white cursor-pointer">
+              রেজিস্ট্রেশন
+            </button>
+          </div>
+
+          <div id="authTabContent" class="space-y-3"></div>
+        `,
+        onMount: () => switchAuthTab('admin'),
+      };
+    }
+
+    function switchAuthTab(tab) {
+      const tabs = {
+        admin: document.getElementById('tabAdminLogin'),
+        member: document.getElementById('tabMemberLogin'),
+        register: document.getElementById('tabRegister'),
+      };
+      Object.entries(tabs).forEach(([key, el]) => {
+        if (!el) return;
+        if (key === tab) {
+          el.className = 'py-2 rounded-lg text-xs font-bold bg-samityBlue-600 text-white cursor-pointer';
+        } else {
+          el.className = 'py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-white cursor-pointer';
+        }
+      });
+
+      const container = document.getElementById('authTabContent');
+      if (!container) return;
+
+      if (tab === 'admin') {
+        container.innerHTML = `
+          <div class="p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-samityBlue-800 space-y-1">
+            <p class="font-bold">ডেমো প্রশাসনিক তথ্য (Demo Admin / Cashier):</p>
+            <p>• অ্যাডমিন আইডি: <b>admin</b> | পাসওয়ার্ড: <b>1234</b></p>
+            <p>• ক্যাশিয়ার আইডি: <b>cashier</b> | পাসওয়ার্ড: <b>1234</b></p>
+            <p class="text-[11px] text-slate-600">নোট: লগইনের পরও সকল ব্যালেন্স, সঞ্চয় ও ঋণ শূন্য (৳ ০.০০) থেকে শুরু হবে।</p>
+          </div>
+          <form onsubmit="handleAdminLogin(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">অ্যাডমিন / ক্যাশিয়ার আইডি</label>
+              <input id="adminUserInput" type="text" required placeholder="admin অথবা cashier"
+                class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-samityBlue-600 focus:outline-none text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">পাসওয়ার্ড</label>
+              <input id="adminPassInput" type="password" required placeholder="••••"
+                class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-samityBlue-600 focus:outline-none text-sm" />
+            </div>
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white font-bold text-sm cursor-pointer">
+              প্রশাসনিক লগইন করুন
+            </button>
+          </form>
+        `;
+      } else if (tab === 'member') {
+        container.innerHTML = `
+          <p class="text-xs text-slate-600">
+            অ্যাডমিন কর্তৃক যুক্ত সদস্য অথবা রেজিস্ট্রেশনকৃত সদস্য তাদের <b>মোবাইল নাম্বার বা জাতীয় পরিচয়পত্র (NID)</b> ও পাসওয়ার্ড দিয়ে লগইন করতে পারবেন।
+          </p>
+          <form onsubmit="handleMemberLogin(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">মোবাইল নাম্বার অথবা জাতীয় পরিচয়পত্র (NID)</label>
+              <input id="memberLoginIdInput" type="text" required placeholder="017xxxxxxxx অথবা NID নাম্বার"
+                class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-samityBlue-600 focus:outline-none text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">পাসওয়ার্ড</label>
+              <input id="memberLoginPassInput" type="password" required placeholder="সদস্য পাসওয়ার্ড"
+                class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-samityBlue-600 focus:outline-none text-sm" />
+            </div>
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm cursor-pointer">
+              সদস্য লগইন করুন
+            </button>
+          </form>
+        `;
+      } else {
+        // Registration tab (creates a member profile with full required fields)
+        container.innerHTML = buildMemberFormFields({ isSelfRegistration: true });
+        attachMemberFormListeners();
+      }
+    }
+
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      const userId = document.getElementById('adminUserInput').value.trim().toLowerCase();
+      const pass = document.getElementById('adminPassInput').value.trim();
+
+      if (userId === DEFAULT_AUTH_CONFIG.adminId && pass === DEFAULT_AUTH_CONFIG.adminPass) {
+        state.session = {
+          role: 'ADMIN',
+          userId: 'admin',
+          name: 'প্রধান অ্যাডমিন',
+          phone: '',
+        };
+        localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(state.session));
+        renderAll();
+        closeAllModals();
+        showToast('প্রশাসনিক প্যানেলে লগইন সফল হয়েছে!');
+      } else if (userId === DEFAULT_AUTH_CONFIG.cashierId && pass === DEFAULT_AUTH_CONFIG.cashierPass) {
+        state.session = {
+          role: 'CASHIER',
+          userId: 'cashier',
+          name: 'সমিতি ক্যাশিয়ার',
+          phone: '',
+        };
+        localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(state.session));
+        renderAll();
+        closeAllModals();
+        showToast('ক্যাশিয়ার প্যানেলে লগইন সফল হয়েছে!');
+      } else {
+        showToast('ভুল আইডি বা পাসওয়ার্ড! (ডেমো: admin / 1234)', 'error');
+      }
+    }
+
+    function handleMemberLogin(e) {
+      e.preventDefault();
+      const identifier = document.getElementById('memberLoginIdInput').value.trim();
+      const pass = document.getElementById('memberLoginPassInput').value.trim();
+
+      const member = state.data.members.find(
+        m => (m.phone === identifier || m.nid === identifier || m.memberCode === identifier) && m.password === pass
+      );
+
+      if (!member) {
+        showToast('সদস্যের তথ্য পাওয়া যায়নি বা পাসওয়ার্ড ভুল!', 'error');
+        return;
+      }
+
+      state.session = {
+        role: 'MEMBER',
+        userId: member.id,
+        name: member.name,
+        phone: member.phone,
+      };
+      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(state.session));
+      renderAll();
+      closeAllModals();
+      showToast(`স্বাগতম, ${member.name}!`);
+    }
+
+    function logoutUser() {
+      state.session = null;
+      localStorage.removeItem(STORAGE_KEYS.SESSION);
+      renderAll();
+      showToast('লগআউট সম্পন্ন হয়েছে');
+    }
+
+    // =======================================================================
+    // 2. SAMITY NAME EDITING (ADMIN)
+    // =======================================================================
+    function openEditSamityName() {
+      if (!state.session || state.session.role !== 'ADMIN') {
+        showToast('শুধুমাত্র প্রধান অ্যাডমিন সমিতির নাম পরিবর্তন করতে পারবেন। আগে অ্যাডমিন লগইন করুন।', 'warn');
+        openModal('authModal');
+        return;
+      }
+      openModal('editSamityNameModal');
+    }
+
+    function buildEditSamityNameModal() {
+      return {
+        title: 'সমিতির নাম পরিবর্তন করুন',
+        html: `
+          <form onsubmit="saveSamityName(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">সমিতির নতুন নাম</label>
+              <input id="newSamityNameInput" type="text" required value="${escapeAttr(state.data.samityName)}"
+                class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-samityBlue-600 focus:outline-none text-sm font-semibold" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">রেজিস্ট্রেশন নাম্বার (ঐচ্ছিক)</label>
+              <input id="newSamityRegInput" type="text" value="${escapeAttr(state.data.samityRegNo || '')}"
+                placeholder="যেমন: রেজি-১০২৪"
+                class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-samityBlue-600 focus:outline-none text-sm" />
+            </div>
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white font-bold text-sm cursor-pointer">
+              নাম সংরক্ষণ ও সিঙ্ক করুন
+            </button>
+          </form>
+        `,
+      };
+    }
+
+    function saveSamityName(e) {
+      e.preventDefault();
+      const newName = document.getElementById('newSamityNameInput').value.trim();
+      const regNo = document.getElementById('newSamityRegInput').value.trim();
+      if (!newName) return;
+
+      commitMutation('EDIT_SAMITY_NAME', { samityName: newName, samityRegNo: regNo }, (d) => {
+        d.samityName = newName;
+        d.samityRegNo = regNo;
+      });
+
+      closeAllModals();
+      showToast('সমিতির নাম আপডেট হয়েছে!');
+    }
+
+    // =======================================================================
+    // 3. MEMBERS MANAGEMENT (ADD, EDIT, PHOTO, SIGNATURE, LOGIN ACCESS)
+    // =======================================================================
+    function buildMembersModal() {
+      const isAdmin = state.session && state.session.role === 'ADMIN';
+      const members = state.data.members;
+
+      const listHtml = members.length === 0
+        ? `<div class="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+             <i class="fa-solid fa-users-slash text-2xl text-slate-300 mb-2"></i>
+             <p class="text-xs font-semibold text-slate-600">এখনও কোনো সদস্য যুক্ত করা হয়নি (০ জন)</p>
+             <p class="text-[11px] text-slate-400 mt-1">অ্যাডমিন বাটন থেকে নতুন সদস্য যুক্ত করুন অথবা রেজিস্ট্রেশন করুন।</p>
+           </div>`
+        : members.map(m => {
+            const canEdit = isAdmin || (state.session && state.session.role === 'MEMBER' && state.session.userId === m.id);
+            return `
+              <div class="p-3 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-between gap-2.5">
+                <div onclick="openModal('memberProfileModal', '${m.id}')" class="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer">
+                  <img src="${m.photoDataUrl || placeholderAvatar(m.name)}" alt="${escapeAttr(m.name)}"
+                    onerror="this.src='${placeholderAvatar(m.name)}'"
+                    class="w-11 h-11 rounded-full object-cover border border-slate-200 shrink-0" />
+                  <div class="min-w-0">
+                    <p class="text-sm font-bold text-slate-800 truncate">${escapeHtml(m.name)}</p>
+                    <p class="text-[11px] text-slate-500 truncate">মোবাইল: ${escapeHtml(m.phone)} • NID: ${escapeHtml(m.nid)}</p>
+                    <p class="text-[11px] font-semibold text-samityBlue-700">সঞ্চয়: ${formatBDT(m.savingsBalance || 0)}</p>
+                  </div>
+                </div>
+                <div class="flex flex-col gap-1 shrink-0">
+                  <button onclick="openModal('memberProfileModal', '${m.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold cursor-pointer">
+                    বিস্তারিত
+                  </button>
+                  ${canEdit ? `
+                    <button onclick="openModal('addEditMemberModal', '${m.id}')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 text-[11px] font-semibold cursor-pointer">
+                      এডিট
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          }).join('');
+
+      return {
+        title: `সদস্য তালিকা (${toBanglaDigits(members.length)} জন)`,
+        html: `
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs text-slate-500">সকল সদস্যের প্রোফাইল ও স্বাক্ষর</span>
+            <button onclick="openModal('addEditMemberModal', null)" class="px-3 py-2 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white text-xs font-bold cursor-pointer">
+              <i class="fa-solid fa-user-plus mr-1"></i> নতুন সদস্য যুক্ত করুন
+            </button>
+          </div>
+          <div class="space-y-2.5">${listHtml}</div>
+        `,
+      };
+    }
+
+    function buildAddEditMemberModal(memberId) {
+      const existing = memberId ? state.data.members.find(m => m.id === memberId) : null;
+      if (existing && (!state.session || (state.session.role !== 'ADMIN' && state.session.userId !== existing.id))) {
+        showToast('সদস্যের তথ্য এডিট করার অনুমতি নেই', 'error');
+        return buildMembersModal();
+      }
+
+      return {
+        title: existing ? 'সদস্যের তথ্য এডিট করুন' : 'নতুন সদস্য যুক্ত করুন',
+        html: buildMemberFormFields({ existingMember: existing, isSelfRegistration: false }),
+        onMount: () => attachMemberFormListeners(existing),
+      };
+    }
+
+    function buildMemberFormFields({ existingMember = null, isSelfRegistration = false }) {
+      const m = existingMember || {};
+      const photoPreview = m.photoDataUrl || placeholderAvatar(m.name || 'সদস্য');
+      const sigPreview = m.signatureDataUrl || '';
+
+      return `
+        <form id="memberForm" onsubmit="handleMemberFormSubmit(event, ${m.id ? `'${m.id}'` : 'null'}, ${isSelfRegistration})" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">সদস্যের পূর্ণ নাম *</label>
+            <input id="mName" type="text" required value="${escapeAttr(m.name || '')}" placeholder="যেমন: মো: রফিকুল ইসলাম"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">পিতার নাম *</label>
+              <input id="mFather" type="text" required value="${escapeAttr(m.fatherName || '')}" placeholder="পিতার নাম"
+                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">মাতার নাম *</label>
+              <input id="mMother" type="text" required value="${escapeAttr(m.motherName || '')}" placeholder="মাতার নাম"
+                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">জাতীয় পরিচয়পত্র (NID) *</label>
+              <input id="mNid" type="text" required value="${escapeAttr(m.nid || '')}" placeholder="NID নাম্বার"
+                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">মোবাইল নাম্বার *</label>
+              <input id="mPhone" type="tel" required value="${escapeAttr(m.phone || '')}" placeholder="017xxxxxxxx"
+                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">লগইন পাসওয়ার্ড *</label>
+            <input id="mPass" type="text" required value="${escapeAttr(m.password || '123456')}" placeholder="সদস্য লগইনের জন্য পাসওয়ার্ড"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm" />
+          </div>
+
+          <!-- Photo Upload -->
+          <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200">
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">সদস্যের ছবি (Photo)</label>
+            <div class="flex items-center gap-3">
+              <img id="mPhotoPreview" src="${photoPreview}" alt="ছবি"
+                onerror="this.src='${placeholderAvatar('সদস্য')}'"
+                class="w-14 h-14 rounded-xl object-cover border border-slate-300 bg-white shrink-0" />
+              <div class="flex-1">
+                <input id="mPhotoFile" type="file" accept="image/*" class="block w-full text-[11px] text-slate-600" />
+                <p class="text-[10px] text-slate-400 mt-1">ছবি নির্বাচন করুন (অফলাইনেও সংরক্ষিত হবে)</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Signature Upload or Draw -->
+          <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-semibold text-slate-700">সদস্যের স্বাক্ষর (Signature)</label>
+              <button type="button" onclick="clearSignaturePad()" class="text-[11px] text-rose-600 font-semibold cursor-pointer">
+                স্বাক্ষর মুছুন
+              </button>
+            </div>
+            <canvas id="sigCanvas" width="340" height="85" class="signature-pad w-full h-[85px] bg-white border border-dashed border-slate-300 rounded-xl"></canvas>
+            <div class="flex items-center justify-between gap-2">
+              <input id="mSigFile" type="file" accept="image/*" class="block w-full text-[11px] text-slate-600" />
+              ${sigPreview ? `<img id="existingSigThumb" src="${sigPreview}" alt="স্বাক্ষর" class="h-8 w-16 object-contain border rounded bg-white shrink-0" />` : ''}
+            </div>
+          </div>
+
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white font-bold text-sm cursor-pointer">
+            ${isSelfRegistration ? 'রেজিস্ট্রেশন সম্পন্ন করুন' : (existingMember ? 'তথ্য আপডেট করুন' : 'সদস্য সংরক্ষণ করুন')}
+          </button>
+        </form>
+      `;
+    }
+
+    let currentPhotoDataUrl = '';
+    let currentSigDataUrl = '';
+    let sigDrawing = false;
+
+    function attachMemberFormListeners(existingMember = null) {
+      currentPhotoDataUrl = (existingMember && existingMember.photoDataUrl) || '';
+      currentSigDataUrl = (existingMember && existingMember.signatureDataUrl) || '';
+
+      const photoInput = document.getElementById('mPhotoFile');
+      if (photoInput) {
+        photoInput.addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            currentPhotoDataUrl = reader.result;
+            document.getElementById('mPhotoPreview').src = currentPhotoDataUrl;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const sigInput = document.getElementById('mSigFile');
+      if (sigInput) {
+        sigInput.addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            currentSigDataUrl = reader.result;
+            drawDataUrlOnCanvas(currentSigDataUrl);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const canvas = document.getElementById('sigCanvas');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.strokeStyle = '#0b3a78';
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+
+        if (currentSigDataUrl) {
+          drawDataUrlOnCanvas(currentSigDataUrl);
+        }
+
+        const getPos = (evt) => {
+          const rect = canvas.getBoundingClientRect();
+          const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+          const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+          return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY,
+          };
+        };
+
+        const startDraw = (evt) => {
+          evt.preventDefault();
+          sigDrawing = true;
+          const p = getPos(evt);
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+        };
+
+        const moveDraw = (evt) => {
+          if (!sigDrawing) return;
+          evt.preventDefault();
+          const p = getPos(evt);
+          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
+        };
+
+        const endDraw = () => {
+          if (!sigDrawing) return;
+          sigDrawing = false;
+          currentSigDataUrl = canvas.toDataURL('image/png');
+        };
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', moveDraw);
+        window.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', moveDraw, { passive: false });
+        window.addEventListener('touchend', endDraw);
+      }
+    }
+
+    function drawDataUrlOnCanvas(dataUrl) {
+      const canvas = document.getElementById('sigCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+      img.src = dataUrl;
+    }
+
+    function clearSignaturePad() {
+      const canvas = document.getElementById('sigCanvas');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      currentSigDataUrl = '';
+    }
+
+    function handleMemberFormSubmit(e, editingId, isSelfRegistration) {
+      e.preventDefault();
+      const name = document.getElementById('mName').value.trim();
+      const fatherName = document.getElementById('mFather').value.trim();
+      const motherName = document.getElementById('mMother').value.trim();
+      const nid = document.getElementById('mNid').value.trim();
+      const phone = document.getElementById('mPhone').value.trim();
+      const password = document.getElementById('mPass').value.trim();
+
+      if (!name || !fatherName || !motherName || !nid || !phone || !password) {
+        showToast('সব বাধ্যতামূলক তথ্য পূরণ করুন', 'error');
+        return;
+      }
+
+      if (editingId) {
+        commitMutation('UPDATE_MEMBER', { id: editingId, name, phone, nid }, (d) => {
+          const target = d.members.find(m => m.id === editingId);
+          if (target) {
+            target.name = name;
+            target.fatherName = fatherName;
+            target.motherName = motherName;
+            target.nid = nid;
+            target.phone = phone;
+            target.password = password;
+            if (currentPhotoDataUrl) target.photoDataUrl = currentPhotoDataUrl;
+            if (currentSigDataUrl) target.signatureDataUrl = currentSigDataUrl;
+            target.updatedAt = Date.now();
+          }
+          // If logged in as this member, sync session name/phone
+          if (state.session && state.session.userId === editingId) {
+            state.session.name = name;
+            state.session.phone = phone;
+            localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(state.session));
+          }
+        });
+        showToast('সদস্যের তথ্য সফলভাবে আপডেট হয়েছে!');
+        openModal('membersModal');
+      } else {
+        const newId = 'mem_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        const memberCode = 'SM-' + String(state.data.members.length + 1).padStart(3, '0');
+        const newMember = {
+          id: newId,
+          memberCode,
+          name,
+          fatherName,
+          motherName,
+          nid,
+          phone,
+          password,
+          photoDataUrl: currentPhotoDataUrl || '',
+          signatureDataUrl: currentSigDataUrl || '',
+          savingsBalance: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+
+        commitMutation('ADD_MEMBER', { id: newId, name, phone, nid }, (d) => {
+          d.members.push(newMember);
+        });
+
+        if (isSelfRegistration) {
+          state.session = {
+            role: 'MEMBER',
+            userId: newId,
+            name,
+            phone,
+          };
+          localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(state.session));
+          renderAll();
+          closeAllModals();
+          showToast('রেজিস্ট্রেশন সম্পন্ন! আপনি সদস্য হিসেবে লগইন আছেন।');
+        } else {
+          showToast('নতুন সদস্য যুক্ত হয়েছে! এখন সদস্য লগইন করতে পারবেন।');
+          openModal('membersModal');
+        }
+      }
+    }
+
+    function buildMemberProfileModal(memberId) {
+      const m = state.data.members.find(x => x.id === memberId);
+      if (!m) return buildMembersModal();
+
+      const isAdmin = state.session && state.session.role === 'ADMIN';
+      const canEdit = isAdmin || (state.session && state.session.role === 'MEMBER' && state.session.userId === m.id);
+
+      return {
+        title: `সদস্য প্রোফাইল (${m.memberCode})`,
+        html: `
+          <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+            <img src="${m.photoDataUrl || placeholderAvatar(m.name)}" alt="${escapeAttr(m.name)}"
+              onerror="this.src='${placeholderAvatar(m.name)}'"
+              class="w-16 h-16 rounded-2xl object-cover border border-slate-300 bg-white shrink-0" />
+            <div>
+              <h4 class="text-base font-bold text-slate-900">${escapeHtml(m.name)}</h4>
+              <p class="text-xs text-slate-500">সদস্য কোড: <b>${escapeHtml(m.memberCode)}</b></p>
+              <p class="text-xs font-bold text-emerald-700 mt-0.5">মোট সঞ্চয়: ${formatBDT(m.savingsBalance || 0)}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs bg-white p-3 rounded-2xl border border-slate-100">
+            <div><span class="text-slate-400 block">পিতার নাম</span><b>${escapeHtml(m.fatherName)}</b></div>
+            <div><span class="text-slate-400 block">মাতার নাম</span><b>${escapeHtml(m.motherName)}</b></div>
+            <div><span class="text-slate-400 block">জাতীয় পরিচয়পত্র</span><b>${escapeHtml(m.nid)}</b></div>
+            <div><span class="text-slate-400 block">মোবাইল নাম্বার</span><b>${escapeHtml(m.phone)}</b></div>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200">
+            <p class="text-xs font-semibold text-slate-600 mb-1.5">সদস্যের স্বাক্ষর</p>
+            ${m.signatureDataUrl
+              ? `<img src="${m.signatureDataUrl}" alt="স্বাক্ষর" class="h-16 w-full object-contain bg-white rounded-xl border border-slate-200 p-1" />`
+              : `<p class="text-xs text-slate-400 italic">স্বাক্ষর সংযুক্ত করা হয়নি</p>`}
+          </div>
+
+          <div class="flex gap-2">
+            ${canEdit ? `<button onclick="openModal('addEditMemberModal', '${m.id}')" class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs cursor-pointer">তথ্য এডিট করুন</button>` : ''}
+            <button onclick="openModal('savingsModal')" class="flex-1 py-2.5 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white font-bold text-xs cursor-pointer">অনলাইন পেমেন্ট</button>
+          </div>
+        `,
+      };
+    }
+
+    // =======================================================================
+    // 4. INTERNATIONAL ONLINE PAYMENTS & SAVINGS (যেকোনো দেশ থেকে পেমেন্ট)
+    // =======================================================================
+    function buildSavingsPaymentModal() {
+      const members = state.data.members;
+      const defaultMemId = (state.session && state.session.role === 'MEMBER')
+        ? state.session.userId
+        : (members[0] ? members[0].id : '');
+
+      const memberOptions = members.length
+        ? members.map(m => `<option value="${m.id}" ${m.id === defaultMemId ? 'selected' : ''}>${escapeHtml(m.name)} (${escapeHtml(m.phone)})</option>`).join('')
+        : `<option value="">কোনো সদস্য নেই — আগে সদস্য যুক্ত করুন</option>`;
+
+      return {
+        title: 'সঞ্চয় ও আন্তর্জাতিক অনলাইন পেমেন্ট',
+        html: `
+          <div class="p-3 rounded-2xl bg-blue-50 border border-blue-100 text-xs text-samityBlue-900">
+            <p class="font-bold"><i class="fa-solid fa-earth-asia mr-1"></i> গ্লোবাল অনলাইন পেমেন্ট গেটওয়ে</p>
+            <p class="text-[11px] text-slate-600 mt-0.5">যেকোনো দেশ থেকে কার্ড, ইন্টারন্যাশনাল ট্রান্সফার বা মোবাইল ব্যাংকিংয়ের মাধ্যমে সঞ্চয়/কিস্তি জমা দিন।</p>
+          </div>
+
+          <form onsubmit="handleOnlinePaymentSubmit(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">সদস্য নির্বাচন করুন *</label>
+              <select id="payMemberSelect" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                ${memberOptions}
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">দেশ (Country) *</label>
+                <select id="payCountry" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                  <option value="Bangladesh (BD)">বাংলাদেশ (BD)</option>
+                  <option value="Saudi Arabia (KSA)">সৌদি আরব (KSA)</option>
+                  <option value="United Arab Emirates (UAE)">সংযুক্ত আরব আমিরাত (UAE)</option>
+                  <option value="Malaysia (MY)">মালয়েশিয়া (MY)</option>
+                  <option value="Qatar (QA)">কাতার (QA)</option>
+                  <option value="United Kingdom (UK)">যুক্তরাজ্য (UK)</option>
+                  <option value="United States (USA)">যুক্তরাষ্ট্র (USA)</option>
+                  <option value="Other International">অন্যান্য দেশ</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">পেমেন্ট মাধ্যম *</label>
+                <select id="payChannel" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                  <option value="International Visa/Mastercard">Visa / Mastercard</option>
+                  <option value="Global Bank / Wire">International Bank Transfer</option>
+                  <option value="Mobile Banking (bKash/Nagad)">bKash / Nagad / Rocket</option>
+                  <option value="Remittance Gateway">Remittance / Payoneer</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">পরিমাণ (BDT সমতুল্য ৳) *</label>
+                <input id="payAmount" type="number" min="1" step="0.01" required placeholder="0.00"
+                  class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">ট্রানজেকশন রেফারেন্স *</label>
+                <input id="payRef" type="text" required placeholder="TXN-INT-8821"
+                  class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">পেমেন্টের ধরন</label>
+              <select id="payPurpose" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                <option value="SAVINGS">মাসিক / সাপ্তাহিক সঞ্চয়</option>
+                <option value="LOAN_REPAY">ঋণের কিস্তি পরিশোধ</option>
+              </select>
+            </div>
+
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm cursor-pointer">
+              <i class="fa-solid fa-lock mr-1"></i> অনলাইন পেমেন্ট সম্পন্ন করুন
+            </button>
+          </form>
+        `,
+      };
+    }
+
+    function handleOnlinePaymentSubmit(e) {
+      e.preventDefault();
+      const memberId = document.getElementById('payMemberSelect').value;
+      const country = document.getElementById('payCountry').value;
+      const channel = document.getElementById('payChannel').value;
+      const amount = parseFloat(document.getElementById('payAmount').value);
+      const ref = document.getElementById('payRef').value.trim();
+      const purpose = document.getElementById('payPurpose').value;
+
+      if (!memberId) {
+        showToast('আগে একজন সদস্য নির্বাচন করুন বা যুক্ত করুন', 'error');
+        return;
+      }
+      if (!amount || amount <= 0) {
+        showToast('সঠিক পরিমাণ লিখুন', 'error');
+        return;
+      }
+
+      const member = state.data.members.find(m => m.id === memberId);
+      if (!member) return;
+
+      commitMutation('ONLINE_PAYMENT', { memberId, amount, purpose, country, channel, ref }, (d) => {
+        const mem = d.members.find(m => m.id === memberId);
+        if (purpose === 'SAVINGS') {
+          if (mem) mem.savingsBalance = (Number(mem.savingsBalance) || 0) + amount;
+          d.availableBalance = (Number(d.availableBalance) || 0) + amount;
+        } else if (purpose === 'LOAN_REPAY') {
+          d.availableBalance = (Number(d.availableBalance) || 0) + amount;
+          // Apply repayment to oldest active disbursed loan of this member
+          const activeLoan = d.loans.find(l => l.memberId === memberId && l.status === 'DISBURSED_BY_CASHIER' && (l.paidAmt || 0) < l.totalPayable);
+          if (activeLoan) {
+            activeLoan.paidAmt = (Number(activeLoan.paidAmt) || 0) + amount;
+          }
+        }
+
+        d.transactions.unshift({
+          id: 'tx_' + Date.now(),
+          type: purpose,
+          memberId: member.id,
+          memberName: member.name,
+          amount,
+          channel,
+          country,
+          referenceId: ref,
+          note: purpose === 'SAVINGS' ? 'অনলাইন সঞ্চয় জমা' : 'অনলাইন ঋণ কিস্তি',
+          date: new Date().toLocaleString('bn-BD'),
+        });
+      });
+
+      closeAllModals();
+      showToast(`${member.name}-এর ${formatBDT(amount)} অনলাইন পেমেন্ট সফলভাবে সম্পন্ন হয়েছে!`);
+    }
+
+    // =======================================================================
+    // 5. LOAN APPLICATION FORM (লোনের পরিমাণ, পরিশোধ, সার্ভিস চার্জ, সময়)
+    // =======================================================================
+    function buildLoanApplicationModal() {
+      const members = state.data.members;
+      const defaultMemId = (state.session && state.session.role === 'MEMBER')
+        ? state.session.userId
+        : (members[0] ? members[0].id : '');
+
+      const memberOptions = members.length
+        ? members.map(m => `<option value="${m.id}" ${m.id === defaultMemId ? 'selected' : ''}>${escapeHtml(m.name)} (${escapeHtml(m.memberCode)})</option>`).join('')
+        : `<option value="">কোনো সদস্য নেই — আগে সদস্য যুক্ত করুন</option>`;
+
+      return {
+        title: 'সদস্য লোন আবেদন ফরম',
+        html: `
+          <div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+            <b>অনুমোদন প্রক্রিয়া:</b> সদস্য আবেদন করার পর <b>অ্যাডমিন অনুমোদন</b> দেবেন, তারপর <b>ক্যাশিয়ার</b> লোন প্রদান সম্পন্ন করবেন।
+          </div>
+
+          <form onsubmit="handleLoanApplySubmit(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">আবেদনকারী সদস্য *</label>
+              <select id="loanMemberId" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                ${memberOptions}
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">লোনের পরিমাণ (৳) *</label>
+                <input id="loanAmount" type="number" min="100" step="1" required oninput="recalcLoanPreview()" placeholder="যেমন: 10000"
+                  class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">সার্ভিস চার্জ (%) *</label>
+                <input id="loanServicePct" type="number" min="0" max="100" step="0.5" required value="5" oninput="recalcLoanPreview()"
+                  class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">পরিশোধের সময় (মাস) *</label>
+                <input id="loanMonths" type="number" min="1" max="60" step="1" required value="6" oninput="recalcLoanPreview()"
+                  class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">পরিশোধ পদ্ধতি</label>
+                <select id="loanRepayPlan" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                  <option value="মাসিক কিস্তি">মাসিক কিস্তি</option>
+                  <option value="সাপ্তাহিক কিস্তি">সাপ্তাহিক কিস্তি</option>
+                  <option value="এককালীন পরিশোধ">এককালীন পরিশোধ</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Live Calculation Box -->
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1 text-xs">
+              <div class="flex justify-between"><span>সার্ভিস চার্জ পরিমাণ:</span><b id="calcServiceAmt">৳ 0.00</b></div>
+              <div class="flex justify-between"><span>মোট পরিশোধযোগ্য পরিমাণ:</span><b id="calcTotalPayable" class="text-samityBlue-700">৳ 0.00</b></div>
+              <div class="flex justify-between"><span>আনুমানিক মাসিক পরিশোধ:</span><b id="calcInstallment" class="text-emerald-700">৳ 0.00</b></div>
+            </div>
+
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white font-bold text-sm cursor-pointer">
+              লোন আবেদন জমা দিন
+            </button>
+          </form>
+        `,
+        onMount: () => recalcLoanPreview(),
+      };
+    }
+
+    function recalcLoanPreview() {
+      const amt = parseFloat(document.getElementById('loanAmount')?.value) || 0;
+      const pct = parseFloat(document.getElementById('loanServicePct')?.value) || 0;
+      const months = Math.max(1, parseInt(document.getElementById('loanMonths')?.value, 10) || 1);
+
+      const serviceAmt = (amt * pct) / 100;
+      const totalPayable = amt + serviceAmt;
+      const perMonth = totalPayable / months;
+
+      const sEl = document.getElementById('calcServiceAmt');
+      const tEl = document.getElementById('calcTotalPayable');
+      const iEl = document.getElementById('calcInstallment');
+      if (sEl) sEl.textContent = formatBDT(serviceAmt);
+      if (tEl) tEl.textContent = formatBDT(totalPayable);
+      if (iEl) iEl.textContent = formatBDT(perMonth);
+    }
+
+    function handleLoanApplySubmit(e) {
+      e.preventDefault();
+      const memberId = document.getElementById('loanMemberId').value;
+      const amount = parseFloat(document.getElementById('loanAmount').value);
+      const serviceChargePct = parseFloat(document.getElementById('loanServicePct').value) || 0;
+      const months = Math.max(1, parseInt(document.getElementById('loanMonths').value, 10) || 1);
+      const repayPlan = document.getElementById('loanRepayPlan').value;
+
+      if (!memberId) {
+        showToast('আগে একজন সদস্য নির্বাচন করুন', 'error');
+        return;
+      }
+      if (!amount || amount <= 0) {
+        showToast('লোনের সঠিক পরিমাণ লিখুন', 'error');
+        return;
+      }
+
+      const member = state.data.members.find(m => m.id === memberId);
+      if (!member) return;
+
+      const serviceChargeAmt = (amount * serviceChargePct) / 100;
+      const totalPayable = amount + serviceChargeAmt;
+      const installmentAmt = totalPayable / months;
+
+      const newLoan = {
+        id: 'loan_' + Date.now(),
+        memberId: member.id,
+        memberName: member.name,
+        amount,
+        serviceChargePct,
+        serviceChargeAmt,
+        totalPayable,
+        months,
+        repayPlan,
+        installmentAmt,
+        paidAmt: 0,
+        status: 'PENDING_ADMIN',
+        appliedAt: new Date().toLocaleString('bn-BD'),
+        approvedAt: null,
+        disbursedAt: null,
+      };
+
+      commitMutation('APPLY_LOAN', { loanId: newLoan.id, memberId, amount }, (d) => {
+        d.loans.unshift(newLoan);
+      });
+
+      closeAllModals();
+      showToast('লোন আবেদন জমা হয়েছে! অ্যাডমিন অনুমোদনের অপেক্ষায় আছে।');
+    }
+
+    // =======================================================================
+    // 6. LOAN DESK: ADMIN APPROVAL -> CASHIER DISBURSEMENT
+    // =======================================================================
+    function buildLoanDeskModal() {
+      const loans = state.data.loans;
+      const role = state.session ? state.session.role : 'GUEST';
+
+      const cardsHtml = loans.length === 0
+        ? `<div class="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+             <i class="fa-solid fa-file-circle-question text-2xl text-slate-300 mb-2"></i>
+             <p class="text-xs font-semibold text-slate-600">কোনো লোন আবেদন নেই (০টি)</p>
+           </div>`
+        : loans.map(loan => {
+            let statusBadge = '';
+            let actionButtons = '';
+
+            if (loan.status === 'PENDING_ADMIN') {
+              statusBadge = `<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">অ্যাডমিন অনুমোদনের অপেক্ষায়</span>`;
+              if (role === 'ADMIN') {
+                actionButtons = `
+                  <div class="flex gap-2 mt-2.5">
+                    <button onclick="adminApproveLoan('${loan.id}')" class="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer">
+                      <i class="fa-solid fa-check mr-1"></i> অ্যাডমিন অনুমোদন দিন
+                    </button>
+                    <button onclick="adminRejectLoan('${loan.id}')" class="px-3 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold cursor-pointer">
+                      বাতিল
+                    </button>
+                  </div>
+                `;
+              } else {
+                actionButtons = `<p class="text-[11px] text-amber-700 mt-2"><i class="fa-solid fa-lock mr-1"></i> শুধুমাত্র অ্যাডমিন অনুমোদন দিতে পারবেন</p>`;
+              }
+            } else if (loan.status === 'APPROVED_BY_ADMIN') {
+              statusBadge = `<span class="px-2 py-0.5 rounded-full bg-blue-100 text-samityBlue-800 text-[10px] font-bold">অ্যাডমিন অনুমোদিত • ক্যাশিয়ারের অপেক্ষায়</span>`;
+              if (role === 'CASHIER' || role === 'ADMIN') {
+                actionButtons = `
+                  <div class="mt-2.5">
+                    <button onclick="cashierDisburseLoan('${loan.id}')" class="w-full py-2 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white text-xs font-bold cursor-pointer">
+                      <i class="fa-solid fa-money-bill-transfer mr-1"></i> ক্যাশিয়ার লোন সম্পন্ন করুন (বিতরণ)
+                    </button>
+                  </div>
+                `;
+              } else {
+                actionButtons = `<p class="text-[11px] text-samityBlue-700 mt-2">ক্যাশিয়ার লোন বিতরণ সম্পন্ন করবেন</p>`;
+              }
+            } else if (loan.status === 'DISBURSED_BY_CASHIER') {
+              statusBadge = `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">ক্যাশিয়ার কর্তৃক সম্পন্ন (সক্রিয়)</span>`;
+              actionButtons = `
+                <div class="mt-2 text-[11px] text-slate-600 flex justify-between">
+                  <span>পরিশোধিত: <b>${formatBDT(loan.paidAmt || 0)}</b></span>
+                  <span>মোট পরিশোধযোগ্য: <b>${formatBDT(loan.totalPayable)}</b></span>
+                </div>
+              `;
+            } else if (loan.status === 'REJECTED') {
+              statusBadge = `<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">বাতিলকৃত</span>`;
+            }
+
+            return `
+              <div class="p-3 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1.5">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-sm font-bold text-slate-800">${escapeHtml(loan.memberName)}</p>
+                  ${statusBadge}
+                </div>
+                <div class="grid grid-cols-2 gap-1.5 text-xs text-slate-600 bg-slate-50 p-2 rounded-xl">
+                  <div>লোনের পরিমাণ: <b class="text-slate-900">${formatBDT(loan.amount)}</b></div>
+                  <div>সার্ভিস চার্জ: <b>${loan.serviceChargePct}% (${formatBDT(loan.serviceChargeAmt)})</b></div>
+                  <div>সময় ও ধরন: <b>${toBanglaDigits(loan.months)} মাস (${escapeHtml(loan.repayPlan || 'কিস্তি')})</b></div>
+                  <div>মোট পরিশোধ: <b class="text-samityBlue-700">${formatBDT(loan.totalPayable)}</b></div>
+                </div>
+                <p class="text-[10px] text-slate-400">আবেদন: ${escapeHtml(loan.appliedAt)}</p>
+                ${actionButtons}
+              </div>
+            `;
+          }).join('');
+
+      return {
+        title: 'ঋণ ডেস্ক (অ্যাডমিন অনুমোদন ও ক্যাশিয়ার)',
+        html: `
+          <div class="p-2.5 rounded-xl bg-slate-100 text-[11px] text-slate-700 flex items-center justify-between">
+            <span>আপনার ভূমিকা: <b>${role === 'ADMIN' ? 'প্রধান অ্যাডমিন' : role === 'CASHIER' ? 'ক্যাশিয়ার' : role === 'MEMBER' ? 'সদস্য' : 'লগইন হয়নি'}</b></span>
+            ${role !== 'ADMIN' && role !== 'CASHIER' ? `<button onclick="openModal('authModal')" class="text-samityBlue-600 font-bold underline cursor-pointer">অ্যাডমিন/ক্যাশিয়ার লগইন</button>` : ''}
+          </div>
+          <div class="space-y-2.5">${cardsHtml}</div>
+        `,
+      };
+    }
+
+    function adminApproveLoan(loanId) {
+      if (!state.session || state.session.role !== 'ADMIN') {
+        showToast('শুধুমাত্র অ্যাডমিন ঋণ অনুমোদন করতে পারবেন', 'error');
+        return;
+      }
+
+      commitMutation('ADMIN_APPROVE_LOAN', { loanId }, (d) => {
+        const loan = d.loans.find(l => l.id === loanId);
+        if (loan && loan.status === 'PENDING_ADMIN') {
+          loan.status = 'APPROVED_BY_ADMIN';
+          loan.approvedAt = new Date().toLocaleString('bn-BD');
+        }
+      });
+
+      showToast('অ্যাডমিন ঋণ অনুমোদন করেছেন! এখন ক্যাশিয়ার লোন সম্পন্ন করবেন।');
+      openModal('loanDeskModal');
+    }
+
+    function adminRejectLoan(loanId) {
+      if (!state.session || state.session.role !== 'ADMIN') {
+        showToast('শুধুমাত্র অ্যাডমিন ঋণ বাতিল করতে পারবেন', 'error');
+        return;
+      }
+
+      commitMutation('ADMIN_REJECT_LOAN', { loanId }, (d) => {
+        const loan = d.loans.find(l => l.id === loanId);
+        if (loan && loan.status === 'PENDING_ADMIN') {
+          loan.status = 'REJECTED';
+        }
+      });
+
+      showToast('লোন আবেদন বাতিল করা হয়েছে', 'warn');
+      openModal('loanDeskModal');
+    }
+
+    function cashierDisburseLoan(loanId) {
+      if (!state.session || (state.session.role !== 'CASHIER' && state.session.role !== 'ADMIN')) {
+        showToast('শুধুমাত্র ক্যাশিয়ার (বা অ্যাডমিন) লোন সম্পন্ন করতে পারবেন', 'error');
+        return;
+      }
+
+      const loan = state.data.loans.find(l => l.id === loanId);
+      if (!loan || loan.status !== 'APPROVED_BY_ADMIN') {
+        showToast('অ্যাডমিন অনুমোদন ছাড়া ক্যাশিয়ার লোন সম্পন্ন করতে পারবেন না!', 'error');
+        return;
+      }
+
+      commitMutation('CASHIER_DISBURSE_LOAN', { loanId, amount: loan.amount }, (d) => {
+        const targetLoan = d.loans.find(l => l.id === loanId);
+        if (!targetLoan || targetLoan.status !== 'APPROVED_BY_ADMIN') return;
+
+        targetLoan.status = 'DISBURSED_BY_CASHIER';
+        targetLoan.disbursedAt = new Date().toLocaleString('bn-BD');
+
+        // Update available balance and add service charge to profit
+        d.availableBalance = (Number(d.availableBalance) || 0) - Number(targetLoan.amount);
+        d.currentProfit = (Number(d.currentProfit) || 0) + Number(targetLoan.serviceChargeAmt || 0);
+
+        d.transactions.unshift({
+          id: 'tx_' + Date.now(),
+          type: 'LOAN_DISBURSE',
+          memberId: targetLoan.memberId,
+          memberName: targetLoan.memberName,
+          amount: targetLoan.amount,
+          channel: 'Cashier Disbursement',
+          country: 'Local / Samity Desk',
+          referenceId: targetLoan.id,
+          note: `ক্যাশিয়ার কর্তৃক ঋণ বিতরণ (সার্ভিস চার্জ ${formatBDT(targetLoan.serviceChargeAmt)})`,
+          date: new Date().toLocaleString('bn-BD'),
+        });
+      });
+
+      showToast('ক্যাশিয়ার সফলভাবে ঋণ সম্পন্ন করেছেন!');
+      openModal('loanDeskModal');
+    }
+
+    // =======================================================================
+    // 7. REPORTS, COLLECTION SHEET, BANKING, INCOME/EXPENSE, MESSAGING
+    // =======================================================================
+    function buildReportsModal() {
+      const d = state.data;
+      const totalLoansDisbursed = d.loans
+        .filter(l => l.status === 'DISBURSED_BY_CASHIER')
+        .reduce((sum, l) => sum + (Number(l.amount) || 0), 0);
+      const totalMemberSavings = d.members.reduce((sum, m) => sum + (Number(m.savingsBalance) || 0), 0);
+
+      return {
+        title: 'সমিতি রিপোর্টস ও সারসংক্ষেপ',
+        html: `
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="p-3 rounded-2xl bg-blue-50 border border-blue-100">
+              <p class="text-[11px] text-slate-500">উপলব্ধ ব্যালেন্স</p>
+              <p class="text-sm font-bold text-samityBlue-800">${formatBDT(d.availableBalance)}</p>
+            </div>
+            <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-100">
+              <p class="text-[11px] text-slate-500">বর্তমান লাভ</p>
+              <p class="text-sm font-bold text-emerald-700">${formatBDT(d.currentProfit)}</p>
+            </div>
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200">
+              <p class="text-[11px] text-slate-500">মোট সদস্য সঞ্চয়</p>
+              <p class="text-sm font-bold text-slate-800">${formatBDT(totalMemberSavings)}</p>
+            </div>
+            <div class="p-3 rounded-2xl bg-amber-50 border border-amber-100">
+              <p class="text-[11px] text-slate-500">বিতরণকৃত ঋণ</p>
+              <p class="text-sm font-bold text-amber-800">${formatBDT(totalLoansDisbursed)}</p>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-bold text-slate-700 mb-2">সাম্প্রতিক লেনদেন (${toBanglaDigits(d.transactions.length)}টি)</h4>
+            ${d.transactions.length === 0
+              ? `<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl">এখনও কোনো লেনদেন হয়নি</p>`
+              : `<div class="space-y-2 max-h-60 overflow-y-auto">${d.transactions.map(tx => `
+                  <div class="p-2.5 rounded-xl bg-white border border-slate-100 flex items-center justify-between text-xs">
+                    <div>
+                      <p class="font-bold text-slate-800">${escapeHtml(tx.memberName || tx.note)}</p>
+                      <p class="text-[10px] text-slate-500">${escapeHtml(tx.note)} • ${escapeHtml(tx.country || '')}</p>
+                      <p class="text-[10px] text-slate-400">${escapeHtml(tx.date)}</p>
+                    </div>
+                    <span class="font-bold ${tx.type === 'EXPENSE' || tx.type === 'LOAN_DISBURSE' ? 'text-rose-600' : 'text-emerald-700'}">
+                      ${tx.type === 'EXPENSE' || tx.type === 'LOAN_DISBURSE' ? '-' : '+'}${formatBDT(tx.amount)}
+                    </span>
+                  </div>
+                `).join('')}</div>`
+            }
+          </div>
+        `,
+      };
+    }
+
+    function buildCollectionSheetModal() {
+      const members = state.data.members;
+      return {
+        title: 'আদায় শীট (Collection Sheet)',
+        html: `
+          <p class="text-xs text-slate-500">সদস্যদের সঞ্চয় বা কিস্তি আদায় দ্রুত এন্ট্রি করুন।</p>
+          ${members.length === 0
+            ? `<div class="text-center py-8 bg-slate-50 rounded-2xl text-xs text-slate-400">আগে সদস্য যুক্ত করুন</div>`
+            : `<div class="space-y-2">${members.map(m => `
+                <div class="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-2 text-xs">
+                  <div class="min-w-0">
+                    <p class="font-bold text-slate-800 truncate">${escapeHtml(m.name)}</p>
+                    <p class="text-[10px] text-slate-500">সঞ্চয়: ${formatBDT(m.savingsBalance || 0)}</p>
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <input id="colAmt_${m.id}" type="number" min="1" placeholder="৳" class="w-20 px-2 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    <button onclick="quickCollect('${m.id}')" class="px-2.5 py-1.5 rounded-lg bg-samityBlue-600 text-white font-semibold cursor-pointer">
+                      আদায়
+                    </button>
+                  </div>
+                </div>
+              `).join('')}</div>`
+          }
+        `,
+      };
+    }
+
+    function quickCollect(memberId) {
+      const input = document.getElementById('colAmt_' + memberId);
+      const amt = parseFloat(input && input.value);
+      if (!amt || amt <= 0) {
+        showToast('আদায়ের পরিমাণ লিখুন', 'error');
+        return;
+      }
+      const member = state.data.members.find(m => m.id === memberId);
+      if (!member) return;
+
+      commitMutation('QUICK_COLLECTION', { memberId, amount: amt }, (d) => {
+        const mem = d.members.find(m => m.id === memberId);
+        if (mem) mem.savingsBalance = (Number(mem.savingsBalance) || 0) + amt;
+        d.availableBalance = (Number(d.availableBalance) || 0) + amt;
+        d.transactions.unshift({
+          id: 'tx_' + Date.now(),
+          type: 'SAVINGS',
+          memberId: member.id,
+          memberName: member.name,
+          amount: amt,
+          channel: 'Collection Sheet',
+          country: 'Local Desk',
+          referenceId: 'COL-' + Date.now().toString().slice(-5),
+          note: 'আদায় শীট থেকে সঞ্চয় জমা',
+          date: new Date().toLocaleString('bn-BD'),
+        });
+      });
+
+      showToast(`${member.name}-এর ${formatBDT(amt)} আদায় যুক্ত হয়েছে!`);
+      openModal('collectionSheetModal');
+    }
+
+    function buildCollectionReportModal() {
+      const collectionTxs = state.data.transactions.filter(t => t.type === 'SAVINGS' || t.type === 'LOAN_REPAY');
+      const totalCollected = collectionTxs.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+
+      return {
+        title: 'আদায় রিপোর্ট\'স',
+        html: `
+          <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+            <span class="text-xs font-bold text-emerald-900">মোট আদায়</span>
+            <span class="text-base font-bold text-emerald-700">${formatBDT(totalCollected)}</span>
+          </div>
+          ${collectionTxs.length === 0
+            ? `<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl">কোনো আদায় রেকর্ড নেই</p>`
+            : `<div class="space-y-2">${collectionTxs.map(t => `
+                <div class="p-2.5 rounded-xl bg-white border border-slate-100 flex justify-between text-xs">
+                  <div>
+                    <p class="font-bold text-slate-800">${escapeHtml(t.memberName)}</p>
+                    <p class="text-[10px] text-slate-500">${escapeHtml(t.channel || '')} • ${escapeHtml(t.country || '')}</p>
+                  </div>
+                  <span class="font-bold text-emerald-700">${formatBDT(t.amount)}</span>
+                </div>
+              `).join('')}</div>`
+          }
+        `,
+      };
+    }
+
+    function buildBankingModal() {
+      return {
+        title: 'সমিতি ব্যাংকিং',
+        html: `
+          <div class="p-3 rounded-2xl bg-samityBlue-50 border border-samityBlue-100 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-500">ব্যাংক ব্যালেন্স</p>
+              <p class="text-base font-bold text-samityBlue-800">${formatBDT(state.data.bankBalance || 0)}</p>
+            </div>
+            <div>
+              <p class="text-xs text-slate-500">হাতে নগদ (উপলব্ধ)</p>
+              <p class="text-base font-bold text-slate-800">${formatBDT(state.data.availableBalance || 0)}</p>
+            </div>
+          </div>
+
+          <form onsubmit="handleBankTransfer(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">লেনদেনের ধরন</label>
+              <select id="bankOpType" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                <option value="DEPOSIT">ক্যাশ থেকে ব্যাংকে জমা (Deposit)</option>
+                <option value="WITHDRAW">ব্যাংক থেকে ক্যাশে উত্তোলন (Withdraw)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">পরিমাণ (৳)</label>
+              <input id="bankAmount" type="number" min="1" step="0.01" required placeholder="0.00"
+                class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold" />
+            </div>
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white font-bold text-sm cursor-pointer">
+              ব্যাংক লেনদেন সম্পন্ন করুন
+            </button>
+          </form>
+        `,
+      };
+    }
+
+    function handleBankTransfer(e) {
+      e.preventDefault();
+      const op = document.getElementById('bankOpType').value;
+      const amt = parseFloat(document.getElementById('bankAmount').value);
+      if (!amt || amt <= 0) return;
+
+      if (op === 'DEPOSIT' && amt > state.data.availableBalance) {
+        showToast('পর্যাপ্ত উপলব্ধ ব্যালেন্স নেই', 'error');
+        return;
+      }
+      if (op === 'WITHDRAW' && amt > (state.data.bankBalance || 0)) {
+        showToast('ব্যাংকে পর্যাপ্ত ব্যালেন্স নেই', 'error');
+        return;
+      }
+
+      commitMutation('BANK_TRANSFER', { op, amt }, (d) => {
+        if (op === 'DEPOSIT') {
+          d.availableBalance -= amt;
+          d.bankBalance = (Number(d.bankBalance) || 0) + amt;
+        } else {
+          d.bankBalance = (Number(d.bankBalance) || 0) - amt;
+          d.availableBalance += amt;
+        }
+        d.transactions.unshift({
+          id: 'tx_' + Date.now(),
+          type: op === 'DEPOSIT' ? 'BANK_DEPOSIT' : 'BANK_WITHDRAW',
+          memberName: 'সমিতি ব্যাংক অ্যাকাউন্ট',
+          amount: amt,
+          channel: 'Bank Transfer',
+          country: 'Local Bank',
+          note: op === 'DEPOSIT' ? 'ব্যাংকে জমা' : 'ব্যাংক থেকে উত্তোলন',
+          date: new Date().toLocaleString('bn-BD'),
+        });
+      });
+
+      showToast('ব্যাংক লেনদেন আপডেট হয়েছে!');
+      openModal('bankingModal');
+    }
+
+    function buildIncomeExpenseModal() {
+      return {
+        title: 'আয় ও ব্যয় হিসাব',
+        html: `
+          <form onsubmit="handleIncomeExpenseSubmit(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ধরন</label>
+              <select id="ieType" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                <option value="INCOME">আয় / লাভ যুক্ত করুন (+)</option>
+                <option value="EXPENSE">খরচ / ব্যয় যুক্ত করুন (-)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">পরিমাণ (৳)</label>
+              <input id="ieAmount" type="number" min="1" step="0.01" required placeholder="0.00"
+                class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">বিবরণ</label>
+              <input id="ieNote" type="text" required placeholder="যেমন: অফিস খরচ বা সার্ভিস আয়"
+                class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm" />
+            </div>
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white font-bold text-sm cursor-pointer">
+              হিসাব সংরক্ষণ করুন
+            </button>
+          </form>
+        `,
+      };
+    }
+
+    function handleIncomeExpenseSubmit(e) {
+      e.preventDefault();
+      const type = document.getElementById('ieType').value;
+      const amt = parseFloat(document.getElementById('ieAmount').value);
+      const note = document.getElementById('ieNote').value.trim();
+      if (!amt || amt <= 0) return;
+
+      commitMutation('INCOME_EXPENSE', { type, amt, note }, (d) => {
+        if (type === 'INCOME') {
+          d.availableBalance += amt;
+          d.currentProfit += amt;
+        } else {
+          d.availableBalance -= amt;
+          d.currentProfit -= amt;
+        }
+        d.transactions.unshift({
+          id: 'tx_' + Date.now(),
+          type,
+          memberName: note,
+          amount: amt,
+          channel: 'Ledger',
+          country: 'Samity',
+          note,
+          date: new Date().toLocaleString('bn-BD'),
+        });
+      });
+
+      showToast('আয়/ব্যয় হিসাব সংরক্ষিত হয়েছে!');
+      closeAllModals();
+    }
+
+    function buildMessagingModal() {
+      const msgs = state.data.messages;
+      return {
+        title: 'বার্তা পাঠান (Notice & Messages)',
+        html: `
+          <form onsubmit="handleSendMessage(event)" class="space-y-2.5">
+            <textarea id="msgText" rows="2" required placeholder="সদস্যদের উদ্দেশ্যে বার্তা বা নোটিশ লিখুন..."
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"></textarea>
+            <button type="submit" class="w-full py-2 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white font-bold text-xs cursor-pointer">
+              <i class="fa-solid fa-paper-plane mr-1"></i> বার্তা পাঠান
+            </button>
+          </form>
+          <div class="space-y-2 pt-2">
+            ${msgs.length === 0
+              ? `<p class="text-xs text-slate-400 text-center py-4 bg-slate-50 rounded-xl">কোনো বার্তা নেই</p>`
+              : msgs.map(m => `
+                  <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                    <div class="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                      <b>${escapeHtml(m.senderName)}</b>
+                      <span>${escapeHtml(m.date)}</span>
+                    </div>
+                    <p class="text-slate-700">${escapeHtml(m.text)}</p>
+                  </div>
+                `).join('')
+            }
+          </div>
+        `,
+      };
+    }
+
+    function handleSendMessage(e) {
+      e.preventDefault();
+      const text = document.getElementById('msgText').value.trim();
+      if (!text) return;
+      const senderName = state.session ? state.session.name : 'সমিতি বার্তা';
+
+      commitMutation('SEND_MESSAGE', { text, senderName }, (d) => {
+        d.messages.unshift({
+          id: 'msg_' + Date.now(),
+          senderName,
+          text,
+          date: new Date().toLocaleString('bn-BD'),
+        });
+      });
+
+      showToast('বার্তা পাঠানো হয়েছে!');
+      openModal('messagingModal');
+    }
+
+    // =======================================================================
+    // 8. OFFLINE + CLOUD SYNC MODAL (EXPORT / IMPORT / PULL / PUSH)
+    // =======================================================================
+    function buildCloudSyncModal() {
+      const jsonStr = JSON.stringify(state.data, null, 2);
+      return {
+        title: 'অফলাইন ও ক্লাউড সিঙ্ক সিস্টেম',
+        html: `
+          <div class="p-3 rounded-2xl bg-blue-50 border border-blue-100 text-xs space-y-1">
+            <p class="font-bold text-samityBlue-900">ক্লাউড ও অফলাইন সিঙ্ক স্ট্যাটাস</p>
+            <p>• নেটওয়ার্ক অবস্থা: <b>${state.isOnline ? 'অনলাইন' : 'অফলাইন'}</b></p>
+            <p>• পেন্ডিং সিঙ্ক কিউ: <b>${toBanglaDigits(state.pendingQueue.length)}টি পরিবর্তন</b></p>
+            <p>• সর্বশেষ সিঙ্ক: <b>${state.data.lastSyncedAt ? new Date(state.data.lastSyncedAt).toLocaleString('bn-BD') : 'এখনও হয়নি'}</b></p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="pushPendingToCloud(true); openModal('cloudSyncModal');" class="py-2.5 px-3 rounded-xl bg-samityBlue-600 hover:bg-samityBlue-700 text-white text-xs font-bold cursor-pointer">
+              <i class="fa-solid fa-cloud-arrow-up mr-1"></i> এখনই সিঙ্ক করুন
+            </button>
+            <button onclick="pullFromCloud(); openModal('cloudSyncModal');" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer">
+              <i class="fa-solid fa-cloud-arrow-down mr-1"></i> ক্লাউড থেকে আনুন
+            </button>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <p class="text-xs font-bold text-slate-700">অন্য মোবাইলে ডাটা নিতে / শেয়ার করতে (JSON স্ন্যাপশট)</p>
+            <textarea id="cloudSnapshotBox" rows="4" class="w-full p-2 rounded-xl border border-slate-300 text-[10px] font-mono bg-white">${escapeHtml(jsonStr)}</textarea>
+            <div class="flex gap-2">
+              <button type="button" onclick="copySnapshotJson()" class="flex-1 py-2 rounded-xl bg-slate-800 text-white text-xs font-semibold cursor-pointer">
+                কপি করুন
+              </button>
+              <button type="button" onclick="importSnapshotJson()" class="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold cursor-pointer">
+                ইম্পোর্ট ও সিঙ্ক করুন
+              </button>
+            </div>
+          </div>
+        `,
+      };
+    }
+
+    function copySnapshotJson() {
+      const box = document.getElementById('cloudSnapshotBox');
+      if (!box) return;
+      box.select();
+      try {
+        document.execCommand('copy');
+        showToast('JSON স্ন্যাপশট কপি হয়েছে!');
+      } catch (e) {
+        showToast('কপি করা যায়নি', 'error');
+      }
+    }
+
+    function importSnapshotJson() {
+      const box = document.getElementById('cloudSnapshotBox');
+      if (!box) return;
+      try {
+        const parsed = JSON.parse(box.value);
+        state.data = { ...createZeroState(), ...parsed, updatedAt: Date.now() };
+        localStorage.setItem(STORAGE_KEYS.LOCAL, JSON.stringify(state.data));
+        localStorage.setItem(STORAGE_KEYS.CLOUD, JSON.stringify(state.data));
+        state.pendingQueue = [];
+        localStorage.setItem(STORAGE_KEYS.PENDING, JSON.stringify([]));
+        renderAll();
+        showToast('ক্লাউড স্ন্যাপশট সফলভাবে ইম্পোর্ট ও সিঙ্ক হয়েছে!');
+      } catch (e) {
+        showToast('সঠিক JSON ডাটা দিন', 'error');
+      }
+    }
+
+    // =======================================================================
+    // 9. SETTINGS (EDIT SAMITY NAME, CAPACITY, RESET TO ZERO)
+    // =======================================================================
+    function buildSettingsModal() {
+      const isAdmin = state.session && state.session.role === 'ADMIN';
+      return {
+        title: 'সমিতি সেটিংস',
+        html: `
+          <div class="space-y-3">
+            <div class="p-3 rounded-2xl bg-white border border-slate-200 flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold text-slate-800">সমিতির নাম পরিবর্তন</p>
+                <p class="text-[11px] text-slate-500">বর্তমান: ${escapeHtml(state.data.samityName)}</p>
+              </div>
+              <button onclick="openEditSamityName()" class="px-3 py-1.5 rounded-xl bg-samityBlue-600 text-white text-xs font-semibold cursor-pointer">
+                এডিট
+              </button>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-rose-50 border border-rose-200 space-y-2">
+              <p class="text-xs font-bold text-rose-800">সবকিছু শূন্য থেকে শুরু করুন (Reset to Zero)</p>
+              <p class="text-[11px] text-rose-600">ব্যালেন্স, লাভ, সদস্য, লোন ও লেনদেন শূন্য (৳ ০.০০) করে দেবে।</p>
+              <button onclick="resetEverythingToZero()" class="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">
+                রিসেট টু জিরো (৳ ০.০০)
+              </button>
+            </div>
+
+            ${!isAdmin ? `<p class="text-[11px] text-slate-500 text-center">সমিতির নাম পরিবর্তনের জন্য অ্যাডমিন লগইন প্রয়োজন।</p>` : ''}
+          </div>
+        `,
+      };
+    }
+
+    function resetEverythingToZero() {
+      const zero = createZeroState();
+      state.data = zero;
+      state.pendingQueue = [];
+      localStorage.setItem(STORAGE_KEYS.LOCAL, JSON.stringify(zero));
+      localStorage.setItem(STORAGE_KEYS.CLOUD, JSON.stringify(zero));
+      localStorage.setItem(STORAGE_KEYS.PENDING, JSON.stringify([]));
+      renderAll();
+      closeAllModals();
+      showToast('সবকিছু শূন্য (৳ ০.০০) থেকে শুরু করা হয়েছে!');
+    }
+
+    // =======================================================================
+    // UTILITIES
+    // =======================================================================
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function escapeAttr(str) {
+      return String(str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function placeholderAvatar(label) {
+      const txt = encodeURIComponent((label || 'S').slice(0, 2));
+      return `https://placehold.co/120x120/0f4c9c/ffffff?text=${txt}`;
+    }
+
+    // Browser online/offline event listeners
+    window.addEventListener('online', () => {
+      state.isOnline = true;
+      if (state.pendingQueue.length > 0) {
+        pushPendingToCloud(true);
+      } else {
+        renderAll();
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      state.isOnline = false;
+      renderAll();
+      showToast('ইন্টারনেট সংযোগ বিচ্ছিন্ন — অফলাইন মোডে কাজ চলছে', 'warn');
+    });
+
+    // Boot App
+    window.addEventListener('DOMContentLoaded', () => {
+      initStorage();
+      renderAll();
+    });
+  </script>
+</body>
+</html>
